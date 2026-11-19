@@ -1,0 +1,95 @@
+#!/bin/bash
+# ==============================================================================
+# commit-msg — a convenção de commit DESTE repositório, virada portão.
+#
+# ⚠️ ARQUIVO GERADO. Não edite aqui: edite `scripts/hooks/commit-msg` do
+# `dten_admin` (a raiz do workspace) e rode `node scripts/gerar-hooks.mjs`.
+# O validador da raiz reprova cópia que divergiu do molde.
+#
+# POR QUE ELE EXISTE: a convenção de commit da Dten-Org varia **por programa**
+# no idioma e no formato — o hotspot escreve em inglês, a medição em português,
+# o `static_speed_site` é livre — e a **coautoria de IA é proibida na
+# organização inteira** (decisão do dono em 2026-10-26, alinhada ao
+# mais-hub-org; até ali a medição exigia o trailer, e o histórico dela não se
+# reescreve). Isso não cabe em prosa: prosa não reprova. Até 2026-10-23 a
+# organização não tinha um hook em repositório nenhum.
+# ==============================================================================
+# --- CONFIGURACAO DE `dten-speed`, gerada pela raiz ---
+PROGRAMA="medicao de velocidade, repositorio PUBLICO -- portugues, sem coautoria de IA"
+FORMATO="conventional"
+ACENTO="permitido"
+COAUTORIA="proibida"
+IMPLANTA=""
+GATILHO=""
+AJUDA='  feat(<escopo>): assunto em portugues
+
+  Exemplo:
+    fix(npm): o lancador devolve o codigo do binario'
+
+ARQUIVO="$1"
+ASSUNTO=$(head -1 "$ARQUIVO")
+
+# Merge e revert são gerados pelo git, e recusá-los seria recusar o próprio git.
+case "$ASSUNTO" in
+  Merge\ *|Revert\ \"*|fixup!\ *|squash!\ *) exit 0 ;;
+esac
+
+recusa() {
+  echo ""
+  echo "❌ COMMIT RECUSADO: $1"
+  echo ""
+  echo "O seu assunto:"
+  echo "  \"$ASSUNTO\""
+  echo ""
+  echo "O que este repositório espera ($PROGRAMA):"
+  printf '%s\n' "$AJUDA"
+  echo ""
+  echo "A regra inteira está no CLAUDE.md deste repositório."
+  exit 1
+}
+
+if [ -z "${ASSUNTO// }" ]; then
+  recusa "o assunto está vazio."
+fi
+
+TIPOS='feat|fix|docs|refactor|test|chore|perf|build|ci|style|revert'
+if [ "$FORMATO" = "conventional" ]; then
+  if ! printf '%s' "$ASSUNTO" | grep -qE "^($TIPOS)(\([a-z0-9][a-z0-9_./-]*\))?!?: [^ ]"; then
+    recusa "assunto fora do Conventional Commits."
+  fi
+fi
+
+# O TETO É GENEROSO DE PROPÓSITO. Medido nos oito repositórios em 2026-10-23: o
+# assunto mais longo do histórico tem 109 caracteres, e o estilo da casa é
+# assunto que diz o que mudou E por quê. Um teto de 72 recusaria o padrão real.
+# O que ele pega é parágrafo colado no lugar do assunto.
+if [ "${#ASSUNTO}" -gt 120 ]; then
+  recusa "assunto com ${#ASSUNTO} caracteres (o teto é 120). O resto vai no corpo."
+fi
+
+if [ "$ACENTO" = "proibido" ] && printf '%s' "$ASSUNTO" | grep -q '[ãõçáéíóúâêôàÃÕÇÁÉÍÓÚÂÊÔÀ]'; then
+  recusa "o assunto deste programa é em inglês, e encontrei acentuação de português."
+fi
+
+# A linha de comentário que o git acrescenta não é mensagem: ela começa com `#`
+# e some no commit. Contá-la faria o hook recusar o que o git escreveu.
+CORPO=$(grep -v '^#' "$ARQUIVO")
+
+# ⚠️ **O QUE SE PROÍBE É A ATRIBUIÇÃO, E NÃO A MENÇÃO** -- medido em 2026-10-23, no dia em que
+# este hook nasceu. A primeira versão proibia as palavras `claude code`, `anthropic` e `copilot`
+# em qualquer linha, e **recusou 42 dos 60 últimos commits do `nodejs_hotspot_service`**: num
+# repositório cujos documentos falam de agentes, o corpo diz "Nesting is allowed by Claude Code"
+# como ASSUNTO, e isso é conteúdo semântico da mudança -- exatamente o que a regra quer que a
+# mensagem tenha. Rodar a guarda contra o histórico real é o que separou as duas coisas.
+#
+# Coautor HUMANO passa: a regra do `CLAUDE.md` é "sem coautoria de IA", e não "sem coautoria".
+if [ "$COAUTORIA" = "proibida" ] &&
+  printf '%s' "$CORPO" | grep -qiE '^claude-session:|^generated-by:|^co-authored-by:.*(claude|anthropic|copilot|chatgpt|openai|gemini)|🤖 generated with|claude\.ai/code'; then
+  recusa "atribuição a IA — neste programa a mensagem leva só o conteúdo semântico da mudança (citar a ferramenta como ASSUNTO é permitido)."
+fi
+
+# O bloco que EXIGIA o trailer no programa de medição saiu em 2026-10-26: a proibição de
+# atribuição a IA passou a valer na organização inteira, por decisão do dono, e nenhum
+# repositório usa mais COAUTORIA="exigida".
+
+exit 0

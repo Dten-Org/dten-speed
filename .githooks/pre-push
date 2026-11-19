@@ -1,0 +1,86 @@
+#!/bin/bash
+# ==============================================================================
+# pre-push — diz o que este push faz ANTES de ele acontecer.
+#
+# ⚠️ ARQUIVO GERADO. Ver o cabeçalho do `commit-msg` ao lado.
+#
+# ELE NÃO RECUSA PUSH NA `master`, e isso é de propósito: desde 2026-10-16 o push
+# é do agente, por decisão do dono (regra de ouro 6 da raiz), e um hook que
+# recusasse o que o dono autorizou seria a mesma inversão que a `deliver-feature`
+# cometeu por escrito até 23/10. O que ele faz é a regra de ouro 8 virada
+# máquina: **antes de empurrar, olhe o que o workflow faz com aquele commit** —
+# porque em sete dos quinze repositórios da organização push É implantação em
+# produção, e a memória de qual deles é qual falha justamente no dia corrido.
+# ==============================================================================
+# --- CONFIGURACAO DE `dten-speed`, gerada pela raiz ---
+PROGRAMA="medicao de velocidade, repositorio PUBLICO -- portugues, sem coautoria de IA"
+FORMATO="conventional"
+ACENTO="permitido"
+COAUTORIA="proibida"
+IMPLANTA=""
+GATILHO=""
+AJUDA='  feat(<escopo>): assunto em portugues
+
+  Exemplo:
+    fix(npm): o lancador devolve o codigo do binario'
+
+RAIZ="$(git rev-parse --show-toplevel)"
+cd "$RAIZ" || exit 1
+
+while read -r _local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+
+  case "$remote_ref" in
+    refs/tags/v*)
+      echo ""
+      echo "🏷️  Tag de versão \`${remote_ref#refs/tags/}\`: quem decide o que ela publica é o"
+      echo "   \`.github/workflows/\` deste repositório. Confira-o, e relate o run depois."
+      continue
+      ;;
+  esac
+
+  RAMO="${remote_ref#refs/heads/}"
+  if [ "$RAMO" != "master" ]; then
+    echo ""
+    echo "⛔ PUSH RECUSADO: ramo \`$RAMO\`."
+    echo "   Todos os repositórios desta organização trabalham na \`master\` (CLAUDE.md da raiz)."
+    echo "   Se este ramo é de propósito, empurre com --no-verify e diga ao dono por quê."
+    exit 1
+  fi
+
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    FAIXA="$local_sha"
+  else
+    FAIXA="$remote_sha..$local_sha"
+  fi
+
+  if [ -z "$IMPLANTA" ]; then
+    echo ""
+    echo "ℹ️  Este repositório NÃO implanta nada: o CI dele é só portão."
+    continue
+  fi
+
+  echo ""
+  echo "🚨 ESTE PUSH IMPLANTA EM PRODUÇÃO: $IMPLANTA"
+  echo ""
+  echo "   Commits que vão subir:"
+  git log --format='     %h %s' "$FAIXA" 2>/dev/null | head -20
+
+  if [ -n "$GATILHO" ]; then
+    TOCADOS=$(git diff --name-only "$FAIXA" 2>/dev/null | grep -E "$GATILHO" | head -12)
+    echo ""
+    if [ -z "$TOCADOS" ]; then
+      echo "   Nenhum caminho de gatilho tocado — o workflow não deve reiniciar a produção."
+      echo "   (o gatilho é por caminho: $GATILHO)"
+    else
+      echo "   ⚠️  Caminhos de GATILHO tocados — a produção vai reiniciar:"
+      printf '%s\n' "$TOCADOS" | sed 's/^/     /'
+    fi
+  fi
+  echo ""
+  echo "   Confira o portão verde e o \`.github/workflows/\` deste commit. Depois do push,"
+  echo "   o resultado do CI se RELATA, nunca se presume — e conferido pelo commit."
+  echo ""
+done
+
+exit 0
