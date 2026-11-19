@@ -1,0 +1,99 @@
+# `SM-CLI-07`: publish the npm packages from a signed release.
+#
+# A release is drafted here by the release workflow of the (private) source repository, and becomes
+# public only after the owner signs SHA256SUMS. Publishing it runs this workflow, which verifies the
+# signature with ./minisign.pub and every checksum before anything reaches npm. The packages carry
+# the very bytes of the release.
+#
+# npm Trusted Publishing (OIDC): no token is stored. Each of the six packages has this repository and
+# this file name (npm.yml) as its trusted publisher. It needs a GitHub-hosted runner, and provenance
+# needs a public repository -- which is why publishing happens here and not in the source repository.
+name: npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to (re)publish, e.g. v1.0.0. Versions already on npm are skipped."
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # The owner approves every publish here, and the npm trusted publisher names this environment:
+    # a workflow run that skips it cannot get an npm token.
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      # The CLI's minisign public key, pinned in the workflow and not only in ./minisign.pub: changing a
+      # workflow file needs the Workflows permission, which a contents-only token does not have.
+      CLI_PUBLIC_KEY: ""
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # Before any code of this repository runs: the release must point at a commit of master, and
+      # ./minisign.pub must be the pinned key. A release made from another branch, with another key or
+      # a weakened verifier, stops here.
+      - name: The release commit is on master and the key is the pinned one
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/master
+          [ -n "$CLI_PUBLIC_KEY" ] || { echo "CLI_PUBLIC_KEY is not set in npm.yml" >&2; exit 1; }
+          grep -qxF "$CLI_PUBLIC_KEY" minisign.pub
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: npm is new enough for Trusted Publishing (11.5.1)
+        run: |
+          npm --version
+          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"
+
+      - run: npm test
+
+      - name: Download the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir release
+
+      - name: Verify the signature and the checksums, then assemble the packages
+        run: node npm/cli.mjs assemble --version "$VERSION" --dir release --out packages
+
+      # The platform packages go first: the main package depends on them by exact version.
+      - name: Publish
+        run: |
+          for dir in packages/linux-x64 packages/linux-arm64 packages/macos-arm64 packages/macos-x64 packages/windows-x64 packages/main; do
+            name=$(node -p "require('./$dir/package.json').name")
+            if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+              echo "$name@$VERSION is already on npm, skipped"
+              continue
+            fi
+            (cd "$dir" && npm publish --access public)
+          done
+
+      - name: Summary
+        run: |
+          {
+            echo "### dten-speed $VERSION on npm"
+            echo
+            echo "- https://www.npmjs.com/package/dten-speed/v/$VERSION"
+            echo "- \`npx -y dten-speed@$VERSION --version\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,12 @@
+{
+  "name": "dten-speed-releases",
+  "private": true,
+  "type": "module",
+  "description": "Verifies the signed dten-speed releases and assembles the npm packages from them.",
+  "scripts": {
+    "test": "node --test npm/release.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.14.0"
+  }
+}
