@@ -41,7 +41,7 @@ jobs:
       # workflow file needs the Workflows permission, which a contents-only token does not have.
       CLI_PUBLIC_KEY: "RWSQCD7m8pjIGJKEPUo0Hmf7X6p2fWYxZUyc9qtbxLQVLNw+rlfPYmNK"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
 
@@ -54,7 +54,7 @@ jobs:
           [ -n "$CLI_PUBLIC_KEY" ] || { echo "CLI_PUBLIC_KEY is not set in npm.yml" >&2; exit 1; }
           grep -qxF "$CLI_PUBLIC_KEY" minisign.pub
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
