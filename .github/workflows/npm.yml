@@ -39,7 +39,7 @@ jobs:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
       # The CLI's minisign public key, pinned in the workflow and not only in ./minisign.pub: changing a
       # workflow file needs the Workflows permission, which a contents-only token does not have.
-      CLI_PUBLIC_KEY: ""
+      CLI_PUBLIC_KEY: "RWSQCD7m8pjIGJKEPUo0Hmf7X6p2fWYxZUyc9qtbxLQVLNw+rlfPYmNK"
     steps:
       - uses: actions/checkout@v5
         with:
