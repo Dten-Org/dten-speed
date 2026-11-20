@@ -31,7 +31,7 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
 
   case "$remote_ref" in
-    refs/tags/v*)
+    refs/tags/v*|refs/tags/*-v[0-9]*)
       echo ""
       echo "🏷️  Tag de versão \`${remote_ref#refs/tags/}\`: quem decide o que ela publica é o"
       echo "   \`.github/workflows/\` deste repositório. Confira-o, e relate o run depois."
