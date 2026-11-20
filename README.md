@@ -6,11 +6,26 @@ It measures the download and upload of **this computer's** connection with the s
 [Real Net Speed](https://play.google.com/store/apps/details?id=br.com.maishub.speedmonitor) app and the
 [dten.com.br](https://dten.com.br) web meter. Free, no account.
 
-## Status
+## Install
 
-**Not released yet.** The first release, the npm package and the install scripts will be announced
-here and at [dten.com.br/cli](https://dten.com.br/cli). Until then, measure in the browser at
-[dten.com.br](https://dten.com.br).
+```
+npx -y dten-speed
+```
+
+Or, without Node.js:
+
+```
+curl -fsSL https://dten.com.br/cli/install.sh | sh        # Linux and macOS
+irm https://dten.com.br/cli/install.ps1 | iex             # Windows (PowerShell)
+```
+
+For AI assistants, as a local MCP server:
+
+```
+claude mcp add dten-speed -- npx -y dten-speed mcp
+```
+
+Options, data use and privacy: [dten.com.br/cli](https://dten.com.br/cli).
 
 ## What each release contains
 
