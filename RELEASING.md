@@ -34,7 +34,14 @@ private CI run built, not what happens to be in a public draft.
 4. Approve the `npm.yml` run (environment `npm`). Check its summary, then
    `npx -y dten-speed@X.Y.Z --version`.
 5. Update the install scripts on dten.com.br: `yarn cli --release <folder printed by lancar.sh>` in
-   the web repository, and push it.
+   the web repository, and push it. If the tool description in `mcp.dart` changed, `yarn cli` refuses
+   until `CLI_TOOL` in the web repository's `scripts/ia.mjs` is the same text.
+6. Once dten.com.br serves the new `/.well-known/mcp.json`, publish it to the official MCP registry as
+   `br.com.dten/speed`: save it as `server.json`, then `mcp-publisher login dns --domain dten.com.br
+   --private-key <hex of the DNS key>` and `mcp-publisher publish`. The key is the one in the `TXT`
+   record at the apex of `dten.com.br`; keep that record. Check
+   `https://registry.modelcontextprotocol.io/v0/servers?search=br.com.dten/speed` shows the new version
+   as latest. Without this step the registry keeps the old version: it stayed at 1.0.0 until 1.4.0.
 
 A failed `npm.yml` can be run again from the Actions tab with the tag; packages already on npm are
 skipped. A published version is never replaced: fix forward with a new version.
